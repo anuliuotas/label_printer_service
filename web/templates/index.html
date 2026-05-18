@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Label Generator</title>
+  <style>
+    :root {
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { overflow-x: hidden; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--accent);
+      color: white;
+      padding: 0.875rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .printer-status {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      transition: background 0.3s, color 0.3s;
+      cursor: default;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.4);
+      flex-shrink: 0;
+      transition: background 0.3s;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+    }
+    .status-tooltip {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      z-index: 200;
+      min-width: 220px;
+      color: var(--text);
+      font-weight: 400;
+      white-space: nowrap;
+    }
+    .printer-status:hover .status-tooltip:not(:empty) { display: block; }
+    .status-tooltip table { border-collapse: collapse; width: 100%; }
+    .status-tooltip td { padding: 0.15rem 0; font-size: 0.78rem; }
+    .status-tooltip td:first-child { color: var(--muted); padding-right: 0.75rem; font-weight: 600; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.06em; }
+    .status-tooltip hr { border: none; border-top: 1px solid var(--border); margin: 0.45rem 0; }
+    .status-error-row td { color: #dc2626 !important; font-weight: 600 !important; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 540px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 10px;
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      align-self: start;
+      min-width: 0;
+    }
+
+    h2 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .form-group { margin-bottom: 0.875rem; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 0.25rem;
+    }
+
+    input[type=number], select, textarea {
+      width: 100%;
+      padding: 0.45rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.875rem;
+      color: var(--text);
+      background: white;
+    }
+    input[type=number]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 72px; gap: 0.75rem; }
+    .row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 72px; gap: 0.75rem; }
+    .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+
+    /* Width input with unit toggle */
+    .input-with-unit {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .input-with-unit:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+    }
+    .input-with-unit input {
+      border: none;
+      border-radius: 0;
+      flex: 1;
+      min-width: 0;
+    }
+    .input-with-unit input:focus { outline: none; box-shadow: none; }
+    .unit-btn {
+      padding: 0 0.5rem;
+      border: none;
+      border-left: 1px solid var(--border);
+      background: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+      flex-shrink: 0;
+    }
+    .unit-btn.active { background: var(--accent); color: white; }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .checkbox-label input { width: auto; accent-color: var(--accent); }
+
+    /* Segmented tape selector */
+    .seg-group {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .seg-btn {
+      flex: 1;
+      padding: 0.4rem 0;
+      border: none;
+      background: white;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      transition: background 0.1s, color 0.1s;
+    }
+    .seg-btn:last-child { border-right: none; }
+    .seg-btn.active { background: var(--accent); color: white; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--accent); color: white; width: 100%; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-success { background: #10b981; color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-ghost { background: var(--bg); color: #64748b; }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-remove {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      background: #fee2e2;
+      color: #ef4444;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-remove:hover { background: #fecaca; }
+    .btn-edit {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      background: #dbeafe;
+      color: #2563eb;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-edit:hover { background: #bfdbfe; }
+    .queue-item-editing {
+      border-color: var(--accent);
+      background: #eef2ff;
+    }
+
+    /* Count stepper in queue items */
+    .count-stepper { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+    .count-stepper button {
+      width: 20px; height: 24px; padding: 0;
+      border: 1px solid var(--border); border-radius: 3px;
+      background: white; font-size: 1rem; line-height: 1;
+      cursor: pointer; color: #475569;
+    }
+    .count-stepper button:hover { background: var(--bg); }
+    .count-stepper input {
+      width: 34px; height: 24px; padding: 0;
+      text-align: center; font-size: 0.8rem; font-weight: 600;
+      border: 1px solid var(--border); border-radius: 3px;
+    }
+
+    /* Live preview */
+    .preview-area {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .preview-area > label { margin-bottom: 0.5rem; }
+    .preview-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 0.75rem 0.5rem;
+      overflow: hidden;
+    }
+    .preview-box img { display: block; }
+
+    /* Tooltip */
+    #tooltip {
+      position: fixed;
+      display: none;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 0.75rem 0.5rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .img-scroll {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 0.75rem 0.5rem;
+      overflow-x: auto;
+      display: inline-block;
+      max-width: 100%;
+    }
+    .img-scroll img { display: block; }
+    .ruler { margin-top: 2px; line-height: 0; }
+
+    /* Combined result scrolls internally, never stretches the card */
+    #result-scroll { display: block; }
+
+    /* Queue */
+    .queue-empty {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .queue-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    .queue-item img {
+      height: 40px;
+      width: auto;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .queue-item-text {
+      flex: 1;
+      font-size: 0.8rem;
+      color: #64748b;
+      font-family: "SF Mono", "Fira Code", monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .queue-item-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .queue-footer {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .spacing-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .spacing-group .input-with-unit {
+      width: 150px;
+    }
+    .spacing-group .input-with-unit input {
+      padding: 0.4rem 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    /* Combined result */
+    .result-section {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .result-section h2 { margin-bottom: 0.75rem; }
+    .result-actions { margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span>Label Generator — Brother PT-P300BT</span>
+  <div class="printer-status" id="printer-status">
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text">Checking…</span>
+    <div class="status-tooltip" id="status-tooltip"></div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- Left: Form -->
+  <div class="card">
+    <h2>New Label</h2>
+
+    <div class="form-group">
+      <label>Tape Height</label>
+      <div class="seg-group">
+        {% for tape in tape_sizes %}
+        <button class="seg-btn {% if loop.first %}active{% endif %}"
+                data-tape="{{ tape }}"
+                onclick="selectTape(this)">{{ tape }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="text">Text</label>
+      <textarea id="text" placeholder="Enter text&#10;Use new lines for multiline"
+                oninput="scheduleLivePreview(300)"></textarea>
+    </div>
+
+    <div class="row-4">
+      <div class="form-group">
+        <label for="width">Width</label>
+        <div class="input-with-unit">
+          <input type="number" id="width" placeholder="auto" min="0.1" step="any"
+                 oninput="scheduleLivePreview(300)">
+          <button class="unit-btn active" data-unit="px" onclick="setWidthUnit(this)">px</button>
+          <button class="unit-btn" data-unit="cm" onclick="setWidthUnit(this)">cm</button>
+        </div>
+        <div class="hint">Empty = fit to text</div>
+      </div>
+      <div class="form-group">
+        <label for="padding">Padding (px)</label>
+        <input type="number" id="padding" value="0" min="0"
+               oninput="scheduleLivePreview(300)">
+        <div class="hint">Each side</div>
+      </div>
+      <div class="form-group">
+        <label for="text_height">Text Height (px)</label>
+        <input type="number" id="text_height" placeholder="auto" min="1"
+               oninput="scheduleLivePreview(300)">
+        <div class="hint">Empty = fill tape</div>
+      </div>
+      <div class="form-group">
+        <label for="count">Count</label>
+        <input type="number" id="count" value="1" min="1" style="text-align:center;">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="font">Font</label>
+      <select id="font" onchange="scheduleLivePreview(0)">
+        {% for font in fonts %}
+        <option value="{{ font }}">{{ font }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display:flex;gap:0.5rem;">
+      <button id="add-btn" class="btn btn-primary" onclick="addLabel()" style="flex:1;">Add to Queue</button>
+      <button id="cancel-edit-btn" class="btn btn-ghost" onclick="cancelEdit()" style="display:none;flex-shrink:0;">Cancel</button>
+    </div>
+
+    <div class="preview-area" id="preview-area" style="display:none">
+      <label>Preview</label>
+      <div class="preview-box" id="preview-box">
+        <img id="preview-img" src="" alt="preview">
+        <div class="ruler" id="preview-ruler"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hover tooltip -->
+  <div id="tooltip">
+    <img id="tooltip-img" src="" alt="">
+    <div class="ruler" id="tooltip-ruler"></div>
+  </div>
+
+  <!-- Right: Queue + Result -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <h2 style="margin-bottom:0;">Queue</h2>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+        <button class="btn btn-ghost" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="exportQueue()">Export JSON</button>
+        <button class="btn btn-ghost" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="document.getElementById('import-json-input').click()">Import JSON</button>
+        <input type="file" id="import-json-input" accept=".json" style="display:none;" onchange="importQueue(this)">
+        <button class="btn btn-ghost" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="exportCsvTemplate()">CSV Template</button>
+        <button class="btn btn-ghost" style="padding:0.3rem 0.6rem;font-size:0.75rem;" onclick="document.getElementById('import-csv-input').click()">Import CSV</button>
+        <input type="file" id="import-csv-input" accept=".csv" style="display:none;" onchange="importCsv(this)">
+      </div>
+    </div>
+
+    <div id="queue-empty" class="queue-empty">No labels added yet.</div>
+    <div id="queue-list" class="queue-list"></div>
+
+    <div id="queue-footer" class="queue-footer" style="display: none;">
+      <button class="btn btn-success" onclick="combineLabels()">Combine All</button>
+      <div class="spacing-group">
+        Spacing
+        <div class="input-with-unit">
+          <input type="number" id="spacing" value="0" min="0" step="any">
+          <button class="unit-btn active" data-unit="px" onclick="setSpacingUnit(this)">px</button>
+          <button class="unit-btn" data-unit="cm" onclick="setSpacingUnit(this)">cm</button>
+        </div>
+      </div>
+      <label class="checkbox-label" style="font-size:0.8rem;color:#64748b;">
+        <input type="checkbox" id="cut_marks" style="accent-color:var(--accent);">
+        Cut marks
+      </label>
+      <button class="btn btn-ghost" onclick="clearQueue()" style="margin-left:auto;">Clear Queue</button>
+    </div>
+
+    <div id="result-section" class="result-section" style="display: none;">
+      <h2>Combined — <span id="combined-total" style="color:#4f46e5;font-weight:700;"></span></h2>
+      <div class="img-scroll" id="result-scroll">
+        <img id="result-img" src="" alt="combined label">
+        <div class="ruler" id="result-ruler"></div>
+      </div>
+      <div class="result-actions" style="display:flex;align-items:stretch;gap:0.5rem;">
+        <button id="print-btn" class="btn btn-success" onclick="printLabel()" style="flex:1;font-size:1.1rem;font-weight:700;">Print Label</button>
+        <a id="download-link" class="btn btn-ghost" download="labels.png" style="width:auto;font-size:0.75rem;white-space:nowrap;flex-shrink:0;">Download PNG</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const PX_PER_CM = 71;
+  const PREVIEW_SCALE = 3;
+  const COMBINED_SCALE = 2;
+
+  const queue = [];
+  let selectedTape = "{{ tape_sizes[0] }}";
+  let currentCombinedB64 = null;
+  let printerReady = false;
+  let widthUnit = 'px';
+  let spacingUnit = 'px';
+  let editingIndex = null;
+
+  function setWidthUnit(btn) {
+    const newUnit = btn.dataset.unit;
+    if (newUnit === widthUnit) return;
+    btn.closest('.input-with-unit').querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const val = parseFloat(document.getElementById('width').value);
+    if (!isNaN(val)) {
+      if (newUnit === 'cm') {
+        document.getElementById('width').value = (val / PX_PER_CM).toFixed(2);
+      } else {
+        document.getElementById('width').value = Math.round(val * PX_PER_CM);
+      }
+    }
+    widthUnit = newUnit;
+    livePreview();
+  }
+
+  function setSpacingUnit(btn) {
+    const newUnit = btn.dataset.unit;
+    if (newUnit === spacingUnit) return;
+    btn.closest('.input-with-unit').querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const val = parseFloat(document.getElementById('spacing').value);
+    if (!isNaN(val) && val > 0) {
+      document.getElementById('spacing').value = newUnit === 'cm'
+        ? (val / PX_PER_CM).toFixed(2)
+        : Math.round(val * PX_PER_CM);
+    }
+    spacingUnit = newUnit;
+  }
+
+  function getSpacingPx() {
+    const val = parseFloat(document.getElementById('spacing').value) || 0;
+    return spacingUnit === 'cm' ? Math.round(val * PX_PER_CM) : Math.round(val);
+  }
+
+  function getWidthPx() {
+    const val = parseFloat(document.getElementById('width').value);
+    if (isNaN(val) || val <= 0) return null;
+    return widthUnit === 'cm' ? Math.round(val * PX_PER_CM) : Math.round(val);
+  }
+
+  function selectTape(btn) {
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTape = btn.dataset.tape;
+    scheduleLivePreview(0);
+    regenerateQueue();
+  }
+
+  async function regenerateQueue() {
+    if (!queue.length) return;
+    await Promise.all(queue.map(async (item) => {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item.params, tape: selectedTape }),
+      });
+      const data = await res.json();
+      if (!data.error) {
+        item.image = data.image;
+        item.width = data.width;
+        item.height = data.height;
+        item.tape = selectedTape;
+        item.text_height = data.text_height;
+      }
+    }));
+    renderQueue();
+    if (document.getElementById("result-section").style.display !== "none") {
+      combineLabels();
+    }
+  }
+
+  let _previewTimer = null;
+  function scheduleLivePreview(delay) {
+    clearTimeout(_previewTimer);
+    _previewTimer = setTimeout(livePreview, delay);
+  }
+
+  async function livePreview() {
+    const text = document.getElementById("text").value;
+    if (!text.trim()) {
+      document.getElementById("preview-area").style.display = "none";
+      return;
+    }
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        tape: selectedTape,
+        width: getWidthPx(),
+        padding: parseInt(document.getElementById("padding").value) || 0,
+        font: document.getElementById("font").value,
+        text_height: parseInt(document.getElementById("text_height").value) || null,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) return;
+    const box = document.getElementById("preview-box");
+    document.getElementById("preview-area").style.display = "block";
+    const available = box.clientWidth - 24; // subtract 0.75rem padding × 2
+    const scale = Math.min(PREVIEW_SCALE, available / data.width);
+    const img = document.getElementById("preview-img");
+    img.src = `data:image/png;base64,${data.image}`;
+    img.width = Math.round(data.width * scale);
+    img.height = Math.round(data.height * scale);
+    document.getElementById("preview-ruler").innerHTML = makeRuler(Math.round(data.width * scale), PX_PER_CM * scale);
+  }
+
+  function makeRuler(displayWidth, displayPxPerCm) {
+    const h = 20;
+    const totalCm = displayWidth / displayPxPerCm;
+
+    // Pick the smallest interval where labels are at least 60px apart
+    const INTERVALS = [0.5, 1, 2, 5, 10, 20, 50, 100];
+    const labelInterval = INTERVALS.find(i => i * displayPxPerCm >= 60) ?? 100;
+    const halfInterval = labelInterval / 2;
+    const showMinor = halfInterval * displayPxPerCm >= 6;
+
+    let marks = '';
+    for (let half = 0; ; half++) {
+      const cm = half * halfInterval;
+      const x = cm * displayPxPerCm;
+      if (x > displayWidth) break;
+      const isMajor = half % 2 === 0;
+      if (!isMajor && !showMinor) continue;
+      marks += `<line x1="${x}" y1="0" x2="${x}" y2="${isMajor ? 10 : 5}" stroke="#94a3b8" stroke-width="1"/>`;
+      if (isMajor) {
+        const label = cm === 0 ? '0' : (Number.isInteger(cm) ? cm + 'cm' : cm.toFixed(1) + 'cm');
+        marks += `<text x="${x}" y="${h}" font-size="9" fill="#64748b" text-anchor="${cm === 0 ? 'start' : 'middle'}" font-family="system-ui,sans-serif">${label}</text>`;
+      }
+    }
+
+    // End marker with total
+    const lastMajorX = Math.floor(totalCm / labelInterval) * labelInterval * displayPxPerCm;
+    if (displayWidth - lastMajorX > 2) {
+      marks += `<line x1="${displayWidth}" y1="0" x2="${displayWidth}" y2="10" stroke="#4f46e5" stroke-width="1.5"/>`;
+    }
+    marks += `<text x="${displayWidth}" y="${h}" font-size="9" fill="#4f46e5" font-weight="600" text-anchor="end" font-family="system-ui,sans-serif">${totalCm.toFixed(1)}cm</text>`;
+
+    return `<svg width="${displayWidth}" height="${h}" xmlns="http://www.w3.org/2000/svg">` +
+      `<line x1="0" y1="0" x2="${displayWidth}" y2="0" stroke="#e2e8f0" stroke-width="1"/>` +
+      marks + `</svg>`;
+  }
+
+  function editLabel(i) {
+    const item = queue[i];
+    const p = item.params;
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.tape === item.tape));
+    selectedTape = item.tape;
+    document.getElementById('text').value = p.text;
+    if (p.width) {
+      document.getElementById('width').value = widthUnit === 'cm' ? (p.width / PX_PER_CM).toFixed(2) : p.width;
+    } else {
+      document.getElementById('width').value = '';
+    }
+    document.getElementById('padding').value = p.padding || 0;
+    document.getElementById('text_height').value = p.text_height || '';
+    document.getElementById('font').value = p.font;
+    document.getElementById('count').value = item.count;
+    editingIndex = i;
+    const addBtn = document.getElementById('add-btn');
+    addBtn.textContent = 'Update Label';
+    addBtn.classList.replace('btn-primary', 'btn-success');
+    document.getElementById('cancel-edit-btn').style.display = '';
+    scheduleLivePreview(0);
+    document.querySelector('.layout').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    editingIndex = null;
+    const addBtn = document.getElementById('add-btn');
+    addBtn.textContent = 'Add to Queue';
+    addBtn.classList.replace('btn-success', 'btn-primary');
+    document.getElementById('cancel-edit-btn').style.display = 'none';
+    renderQueue();
+  }
+
+  async function addLabel() {
+    const text = document.getElementById("text").value;
+    if (!text.trim()) { alert("Please enter some text."); return; }
+
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        tape: selectedTape,
+        width: getWidthPx(),
+        padding: parseInt(document.getElementById("padding").value) || 0,
+        font: document.getElementById("font").value,
+        text_height: parseInt(document.getElementById("text_height").value) || null,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+
+    const item = {
+      image: data.image, label: text.replace(/\n/g, " · "),
+      width: data.width, height: data.height, tape: selectedTape,
+      text_height: data.text_height,
+      count: parseInt(document.getElementById("count").value) || 1,
+      params: {
+        text,
+        width: getWidthPx(),
+        padding: parseInt(document.getElementById("padding").value) || 0,
+        font: document.getElementById("font").value,
+        text_height: parseInt(document.getElementById("text_height").value) || null,
+      },
+    };
+    if (editingIndex !== null) {
+      queue[editingIndex] = item;
+      editingIndex = null;
+      const addBtn = document.getElementById('add-btn');
+      addBtn.textContent = 'Add to Queue';
+      addBtn.classList.replace('btn-success', 'btn-primary');
+      document.getElementById('cancel-edit-btn').style.display = 'none';
+    } else {
+      queue.push(item);
+    }
+    renderQueue();
+    document.getElementById("text").value = "";
+    document.getElementById("preview-area").style.display = "none";
+  }
+
+  function updateCount(i, delta) {
+    queue[i].count = Math.max(1, queue[i].count + delta);
+    renderQueue();
+  }
+
+  function setCount(i, val) {
+    queue[i].count = Math.max(1, parseInt(val) || 1);
+  }
+
+  function showTooltip(i, el) {
+    const item = queue[i];
+    const tip = document.getElementById('tooltip');
+    const img = document.getElementById('tooltip-img');
+    img.src = `data:image/png;base64,${item.image}`;
+    img.width = item.width * PREVIEW_SCALE;
+    img.height = item.height * PREVIEW_SCALE;
+    document.getElementById('tooltip-ruler').innerHTML = makeRuler(item.width * PREVIEW_SCALE, PX_PER_CM * PREVIEW_SCALE);
+
+    tip.style.visibility = 'hidden';
+    tip.style.display = 'block';
+
+    const rect = el.getBoundingClientRect();
+    const tW = tip.offsetWidth;
+    const tH = tip.offsetHeight;
+    let left = rect.left - tW - 10;
+    let top = rect.top + rect.height / 2 - tH / 2;
+    if (left < 8) left = rect.right + 10;
+    top = Math.max(8, Math.min(top, window.innerHeight - tH - 8));
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.visibility = 'visible';
+  }
+
+  function hideTooltip() {
+    document.getElementById('tooltip').style.display = 'none';
+  }
+
+  function removeLabel(i) {
+    hideTooltip();
+    if (editingIndex === i) cancelEdit();
+    else if (editingIndex > i) editingIndex--;
+    queue.splice(i, 1);
+    renderQueue();
+    if (!queue.length) document.getElementById("result-section").style.display = "none";
+  }
+
+  function clearQueue() {
+    hideTooltip();
+    queue.length = 0;
+    currentCombinedB64 = null;
+    renderQueue();
+    document.getElementById("result-section").style.display = "none";
+  }
+
+  function renderQueue() {
+    const empty = document.getElementById("queue-empty");
+    const list = document.getElementById("queue-list");
+    const footer = document.getElementById("queue-footer");
+
+    if (!queue.length) {
+      empty.style.display = "block";
+      footer.style.display = "none";
+      list.innerHTML = "";
+      return;
+    }
+
+    empty.style.display = "none";
+    footer.style.display = "flex";
+    list.innerHTML = queue.map((item, i) => {
+      const cmLen = (item.width / PX_PER_CM).toFixed(1);
+      const editing = editingIndex === i;
+      return `<div class="queue-item${editing ? ' queue-item-editing' : ''}">
+        <img src="data:image/png;base64,${item.image}" alt="label"
+             onmouseenter="showTooltip(${i}, this)" onmouseleave="hideTooltip()">
+        <span class="queue-item-text" title="Label text">${esc(item.label)}</span>
+        <span class="queue-item-meta" style="display:flex;gap:0.4rem;">
+          <span title="Tape height">${item.tape}</span>
+          <span style="color:var(--border)">·</span>
+          <span title="Label length">${cmLen}cm</span>
+          <span style="color:var(--border)">·</span>
+          <span title="Text height in pixels">${item.text_height}px</span>
+          ${item.params.width ? `<span style="color:var(--border)">·</span><span title="Fixed label width">${item.params.width}px wide</span>` : ''}
+          ${item.params.padding ? `<span style="color:var(--border)">·</span><span title="Horizontal padding per side">${item.params.padding}px pad</span>` : ''}
+        </span>
+        <div class="count-stepper">
+          <button onclick="updateCount(${i}, -1)">−</button>
+          <input type="number" value="${item.count}" min="1"
+                 onchange="setCount(${i}, this.value)"
+                 onclick="event.stopPropagation()">
+          <button onclick="updateCount(${i}, 1)">+</button>
+        </div>
+        <button class="btn-edit" onclick="editLabel(${i})">Edit</button>
+        <button class="btn-remove" onclick="removeLabel(${i})">✕</button>
+      </div>`;
+    }).join("");
+  }
+
+  async function combineLabels() {
+    if (!queue.length) return;
+    const spacingPx = getSpacingPx();
+    const expandedImages = queue.flatMap(item => Array(item.count).fill(item.image));
+    const res = await fetch("/api/combine", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ images: expandedImages, spacing_px: spacingPx, cut_marks: document.getElementById("cut_marks").checked }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+
+    currentCombinedB64 = data.image;
+    const src = `data:image/png;base64,${data.image}`;
+    const resultImg = document.getElementById("result-img");
+    resultImg.src = src;
+    resultImg.width = data.width * COMBINED_SCALE;
+    resultImg.height = data.height * COMBINED_SCALE;
+    document.getElementById("result-ruler").innerHTML = makeRuler(data.width * COMBINED_SCALE, PX_PER_CM * COMBINED_SCALE);
+    document.getElementById("download-link").href = src;
+    document.getElementById("combined-total").textContent = `${(data.width / PX_PER_CM).toFixed(1)}cm (${data.width}px)`;
+    document.getElementById("result-section").style.display = "block";
+  }
+
+  async function printLabel() {
+    if (!currentCombinedB64) return;
+    const btn = document.getElementById("print-btn");
+    btn.textContent = "Printing…";
+    btn.disabled = true;
+    const res = await fetch("/api/print", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: currentCombinedB64 }),
+    });
+    const data = await res.json();
+    btn.disabled = !printerReady;
+    if (data.error) {
+      btn.textContent = "Print Label";
+      alert("Print failed: " + data.error);
+    } else {
+      btn.textContent = "Sent!";
+      setTimeout(() => { btn.textContent = "Print Label"; }, 2000);
+    }
+  }
+
+  async function fetchStatus() {
+    const dot = document.getElementById("status-dot");
+    const text = document.getElementById("status-text");
+    const container = document.getElementById("printer-status");
+    const tooltip = document.getElementById("status-tooltip");
+    try {
+      const data = await fetch("/api/status").then(r => r.json());
+      const errors = data.errors || [];
+      const hasErrors = errors.length > 0;
+
+      if ('error' in data) {
+        // Connection failed — no response from printer
+        dot.style.background = "#94a3b8";
+        text.textContent = "Printer offline";
+        container.style.background = "rgba(255,255,255,0.15)";
+        container.style.color = "rgba(255,255,255,0.75)";
+        tooltip.innerHTML = `<div style="font-size:0.78rem;color:#64748b;">${esc(data.error)}</div>`;
+        printerReady = false;
+      } else if (hasErrors) {
+        dot.style.background = "#fbbf24";
+        text.textContent = errors[0];
+        container.style.background = "rgba(251,191,36,0.25)";
+        container.style.color = "white";
+        tooltip.innerHTML = buildTooltip(data, errors);
+        printerReady = false;
+      } else {
+        const colors = [data.tape_bgcolor, data.tape_fgcolor].filter(Boolean).join(' / ');
+        const tapeDesc = [data.tape_width ? data.tape_width + 'mm' : '', colors].filter(Boolean).join(' · ');
+        dot.style.background = "#34d399";
+        text.textContent = "Brother ready" + (tapeDesc ? ' · ' + tapeDesc : '');
+        container.style.background = "rgba(52,211,153,0.2)";
+        container.style.color = "rgba(255,255,255,0.9)";
+        tooltip.innerHTML = buildTooltip(data, errors);
+        printerReady = true;
+      }
+    } catch {
+      dot.style.background = "#94a3b8";
+      text.textContent = "Printer offline";
+      container.style.background = "rgba(255,255,255,0.15)";
+      container.style.color = "rgba(255,255,255,0.75)";
+      tooltip.innerHTML = '';
+      printerReady = false;
+    }
+    const btn = document.getElementById("print-btn");
+    if (btn) btn.disabled = !printerReady;
+  }
+
+  function buildTooltip(data, errors) {
+    const rows = [
+      ['Model',      data.model],
+      ['Tape',       data.tape_width ? data.tape_width + 'mm' : null],
+      ['Type',       data.tape_type],
+      ['Background', data.tape_bgcolor],
+      ['Text color', data.tape_fgcolor],
+    ].filter(([, v]) => v);
+
+    let html = '<table>';
+    for (const [label, value] of rows) {
+      html += `<tr><td>${esc(label)}</td><td>${esc(value)}</td></tr>`;
+    }
+    html += '</table>';
+
+    if (errors.length) {
+      html += '<hr>';
+      html += '<table>';
+      for (const e of errors) {
+        html += `<tr class="status-error-row"><td>Error</td><td>${esc(e)}</td></tr>`;
+      }
+      html += '</table>';
+    }
+    return html;
+  }
+
+  fetchStatus();
+  setInterval(fetchStatus, 5000);
+
+  function exportCsvTemplate() {
+    const fonts = [...document.getElementById('font').options].map(o => o.value).join('|');
+    const tapes = '{{ tape_sizes | join("|") }}';
+    const header = 'text,tape,width_px,padding_px,text_height_px,font,count';
+    const notes = [
+      '# text: label text, use \\n for newlines',
+      `# tape: one of ${tapes} (default: current selection)`,
+      '# width_px: integer or empty for auto',
+      '# padding_px: integer, default 0',
+      '# text_height_px: integer or empty for auto',
+      `# font: filename, e.g. ${document.getElementById('font').value || 'DejaVuSans.ttf'}`,
+      '# count: integer, default 1',
+    ].join('\n');
+    const example = `Hello World,12mm,300,5,,${document.getElementById('font').value || 'DejaVuSans.ttf'},1`;
+    const blob = new Blob([notes + '\n' + header + '\n' + example + '\n'], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'labels_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function _parseCsvRow(row) {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        if (inQ && row[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+      else cur += ch;
+    }
+    result.push(cur);
+    return result;
+  }
+
+  async function importCsv(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const raw = await file.text();
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    if (lines.length < 2) { alert('CSV must have a header row and at least one data row.'); input.value = ''; return; }
+
+    const headers = _parseCsvRow(lines[0]).map(h => h.trim().toLowerCase());
+    const col = name => headers.indexOf(name);
+
+    const items = [];
+    for (const line of lines.slice(1)) {
+      const cells = _parseCsvRow(line);
+      const get = (name, fallback = '') => (cells[col(name)] ?? '').trim() || fallback;
+
+      const text = get('text').replace(/\\n/g, '\n');
+      if (!text) continue;
+
+      const tape = get('tape', selectedTape);
+      const widthPx = parseInt(get('width_px')) || null;
+      const padding = parseInt(get('padding_px')) || 0;
+      const textHeight = parseInt(get('text_height_px')) || null;
+      const font = get('font', document.getElementById('font').value);
+      const count = Math.max(1, parseInt(get('count')) || 1);
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, tape, width: widthPx, padding, font, text_height: textHeight }),
+      });
+      const data = await res.json();
+      if (!data.error) {
+        items.push({
+          image: data.image, label: text.replace(/\n/g, ' · '),
+          width: data.width, height: data.height, tape,
+          text_height: data.text_height, count,
+          params: { text, width: widthPx, padding, font, text_height: textHeight },
+        });
+      }
+    }
+
+    if (!items.length) { alert('No valid labels found in CSV.'); input.value = ''; return; }
+    queue.push(...items);
+    renderQueue();
+    input.value = '';
+  }
+
+  function exportQueue() {
+    if (!queue.length) { alert("Queue is empty."); return; }
+    const payload = {
+      queue,
+      combineOptions: {
+        spacing_px: getSpacingPx(),
+        spacing_value: parseFloat(document.getElementById('spacing').value) || 0,
+        spacing_unit: spacingUnit,
+        cut_marks: document.getElementById("cut_marks").checked,
+      },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "queue.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importQueue(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        // Support both {queue, combineOptions} and legacy plain array
+        const items = Array.isArray(parsed) ? parsed : parsed.queue;
+        if (!Array.isArray(items)) throw new Error("Expected an array");
+        const valid = items.filter(item => item.image && item.params);
+        if (!valid.length) { alert("No valid labels found in file."); return; }
+        queue.push(...valid);
+        if (!Array.isArray(parsed) && parsed.combineOptions) {
+          const opts = parsed.combineOptions;
+          if (opts.spacing_unit) {
+            spacingUnit = opts.spacing_unit;
+            document.getElementById('spacing').value = opts.spacing_value ?? 0;
+            document.querySelectorAll('#queue-footer .spacing-group .unit-btn')
+              .forEach(b => b.classList.toggle('active', b.dataset.unit === spacingUnit));
+          } else {
+            document.getElementById('spacing').value = opts.spacing_px ?? 0;
+          }
+          document.getElementById("cut_marks").checked = !!opts.cut_marks;
+        }
+        renderQueue();
+      } catch (err) {
+        alert("Failed to import: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    input.value = "";
+  }
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+</script>
+
+</body>
+</html>
