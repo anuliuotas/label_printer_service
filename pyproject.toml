@@ -1,7 +1,7 @@
 [project]
-name = "label-image-generator"
+name = "label-printer-service"
 version = "0.1.0"
-description = "Add your description here"
+description = "Web service and CLI for generating and printing labels on Brother PT-P300BT via Bluetooth"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
