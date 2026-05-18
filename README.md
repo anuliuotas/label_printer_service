@@ -1,21 +1,137 @@
-## Setup
+# Label Printer Service
 
-1. Boot your Raspberry Pi Zero and install git:
-   ```
-   sudo apt install -y git
-   ```
-2. Checkout this repo on the Pi: 
-   ```
+Web service and CLI for generating PNG labels and printing them on a **Brother PT-P300BT** via Bluetooth.
 
-   ```
-3. Connect to your Brother printer via bluetooth: run `bluetoothctl` and enter the following commands in its prompt.
-   ```
-   power on                                                                                
-   scan on                                                                                 
-   agent on                                                                                
-   ```
-   Wait a little for the scan to complete. Then enter `devices` bluetoothctl command. You should see the Brother printer devices mac. Run `pair` & `trust` with its mac:
-   ```
-   pair <mac>
-   trust <mac>
-   ```
+---
+
+## Setup on Raspberry Pi Zero
+
+### 1. Install system dependencies
+
+```bash
+sudo apt update
+sudo apt install -y git bluetooth bluez bluez-utils python3-pip
+```
+
+### 2. Install uv (Python package manager)
+
+```bash
+curl -Ls https://astral.sh/uv/install.sh | sh
+source $HOME/.local/bin/env
+```
+
+### 3. Clone the repository
+
+```bash
+git clone https://github.com/anuliuotas/label_printer_service.git
+cd label_printer_service
+```
+
+### 4. Install Python dependencies
+
+```bash
+uv sync
+```
+
+### 5. Pair the printer via Bluetooth
+
+Power on the Brother PT-P300BT, then run `bluetoothctl`:
+
+```bash
+bluetoothctl
+```
+
+Inside the prompt:
+
+```
+power on
+agent on
+scan on
+```
+
+Wait for the printer to appear in the device list, then note its MAC address. Run:
+
+```
+pair <MAC>
+trust <MAC>
+exit
+```
+
+### 6. Configure the environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set your printer's MAC address:
+
+```
+BROTHER_BT_MAC=XX:XX:XX:XX:XX:XX
+BROTHER_PORT=/dev/rfcomm0
+```
+
+### 7. Allow passwordless rfcomm (required for auto-connect)
+
+The app manages the Bluetooth RFCOMM connection automatically. Grant the required permission:
+
+```bash
+sudo visudo
+```
+
+Add this line (replace `pi` with your username):
+
+```
+pi ALL=(ALL) NOPASSWD: /usr/bin/rfcomm
+```
+
+---
+
+## Running
+
+### Web app
+
+```bash
+uv run python web/app.py
+```
+
+Open `http://<pi-ip>:5000` in your browser.
+
+### CLI
+
+```bash
+uv run python generator.py "Your Text" --width 600 --cut-marks
+```
+
+---
+
+## Run on boot (optional)
+
+Create a systemd service so the web app starts automatically:
+
+```bash
+sudo nano /etc/systemd/system/label-printer.service
+```
+
+Paste the following (replace `pi` and the path if needed):
+
+```ini
+[Unit]
+Description=Label Printer Service
+After=network.target bluetooth.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/label_printer_service
+ExecStart=/home/pi/.local/bin/uv run python web/app.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start it:
+
+```bash
+sudo systemctl enable label-printer
+sudo systemctl start label-printer
+```
