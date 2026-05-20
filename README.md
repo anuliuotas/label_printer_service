@@ -10,7 +10,7 @@ Web service and CLI for generating PNG labels and printing them on a **Brother P
 
 ```bash
 sudo apt update
-sudo apt install -y git bluetooth bluez bluez-utils python3-pip
+sudo apt install -y git bluetooth bluez python3-pip
 ```
 
 ### 2. Install uv (Python package manager)
