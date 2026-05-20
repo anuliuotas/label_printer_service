@@ -10,8 +10,12 @@ Web service and CLI for generating PNG labels and printing them on a **Brother P
 
 ```bash
 sudo apt update
-sudo apt install -y git bluetooth bluez python3-pip
+sudo apt install -y git bluetooth bluez python3-pip \
+    zlib1g-dev libjpeg-dev libfreetype6-dev python3-dev
 ```
+
+> The last four packages are C build dependencies for Pillow. The Pi Zero is ARMv6
+> and has no pre-built Pillow wheel, so it compiles from source.
 
 ### 2. Install uv (Python package manager)
 
