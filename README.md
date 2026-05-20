@@ -110,13 +110,17 @@ uv run python generator.py "Your Text" --width 600 --cut-marks
 
 ## Run on boot (optional)
 
-Create a systemd service so the web app starts automatically:
+Create a systemd service so the web app starts automatically. First check your username:
+
+```bash
+whoami
+```
+
+Then create the service file (replace `<user>` with your username throughout):
 
 ```bash
 sudo nano /etc/systemd/system/label-printer.service
 ```
-
-Paste the following (replace `pi` and the path if needed):
 
 ```ini
 [Unit]
@@ -124,9 +128,9 @@ Description=Label Printer Service
 After=network.target bluetooth.target
 
 [Service]
-User=pi
-WorkingDirectory=/home/pi/label_printer_service
-ExecStart=/home/pi/.local/bin/uv run python web/app.py
+User=<user>
+WorkingDirectory=/home/<user>/label_printer_service
+ExecStart=/home/<user>/.local/bin/uv run python web/app.py
 Restart=on-failure
 
 [Install]
