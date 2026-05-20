@@ -139,3 +139,14 @@ Enable and start it:
 sudo systemctl enable label-printer
 sudo systemctl start label-printer
 ```
+
+---
+
+## Updating the service
+
+```bash
+cd ~/label_printer_service
+git pull
+sudo systemctl restart label-printer
+sudo systemctl status label-printer
+```
